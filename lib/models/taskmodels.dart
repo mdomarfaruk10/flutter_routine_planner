@@ -3,12 +3,12 @@ class TaskModels {
   String? title;
   String? note;
   String? date;
-  int? isCompleted;
   String? startTime;
   String? endTime;
-  int? color;
   int? remind;
   String? repeat;
+  int? color;
+  int? isCompleted;
 
   TaskModels(
       {this.id,
@@ -27,13 +27,12 @@ class TaskModels {
     title=json['title'];
     note=json['note'];
     date=json['date'];
-    isCompleted=json['isCompleted'];
     startTime=json['startTime'];
     endTime=json['endTime'];
-    endTime=json['endTime'];
-    color=json['color'];
     remind=json['remind'];
     repeat=json['repeat'];
+    color=json['color'];
+    isCompleted=json['isCompleted'];
   }
   Map<String,dynamic> toJson(){
     final  Map<String,dynamic> data =new Map<String,dynamic>();
@@ -41,12 +40,12 @@ class TaskModels {
     data["title"]=this.title;
     data["note"]=this.note;
     data["date"]=this.date;
-    data["isCompleted"]=this.isCompleted;
     data["startTime"]=this.startTime;
     data["endTime"]=this.endTime;
-    data["color"]=this.color;
     data["remind"]=this.remind;
     data["repeat"]=this.repeat;
+    data["color"]=this.color;
+    data["isCompleted"]=this.isCompleted;
     return data;
 
   }

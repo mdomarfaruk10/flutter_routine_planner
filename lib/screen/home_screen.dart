@@ -1,8 +1,14 @@
 import 'package:daily_routine_planner/component/stylesh_drawer.dart';
+import 'package:daily_routine_planner/controllers/task_controller.dart';
+import 'package:daily_routine_planner/models/taskmodels.dart';
 import 'package:daily_routine_planner/screen/add_task_screen.dart';
+import 'package:daily_routine_planner/services/notification_services.dart';
 import 'package:daily_routine_planner/services_provider/Services_provider.dart';
+import 'package:daily_routine_planner/widget/task_title_widget.dart';
 import 'package:date_picker_timeline/date_picker_timeline.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -16,28 +22,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  void _showTimePicker() {
-    showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      initialEntryMode: TimePickerEntryMode.input,
-    ).then((value) {
-      setState(() {
-        Provider.of<ServiceProvider>(context, listen: false).setTime(value!) ;
-      });
-    });
+  DateTime _selectedDate = DateTime.now();
+  final  _taskController = Get.put(TaskController());
+
+  NotificationHelper notificationHelper =NotificationHelper();
+  void initState(){
+    super.initState();
+    _taskController.getTask();
+
+
   }
 
 
+
   @override
-  DateTime _selectedDate = DateTime.now();
+
 
   Widget build(BuildContext context) {
-    print(_selectedDate);
-
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          notificationHelper.scheduleNotification();
           Navigator.push(context, MaterialPageRoute(builder: (context)=>AddTaskScreen()));
            // modalBottomSheetMenu(context);
         },
@@ -89,31 +94,96 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.grey
                   ),
                   onDateChange: (date){
-                      _selectedDate = date;
+                     setState(() {
+                       _selectedDate = date;
+                     });
                   },
                 ),
               ),
+              InkWell(child: Obx((){
+                return ListView.builder(
+                    itemCount: _taskController.taskList.length,
+                    shrinkWrap: true,
+                    physics: ScrollPhysics(),
+                    itemBuilder: (BuildContext context,index){
+                      TaskModels taskList = _taskController.taskList[index];
+                      print(taskList.toJson());
+                      if(taskList.repeat=="Daily"){
+                        DateTime date = DateFormat.jm().parse(
+                            taskList.startTime.toString()
 
-              ListView.builder(
-                  itemCount: 12,
-                  shrinkWrap: true,
-                  physics: ScrollPhysics(),
-                  itemBuilder: (BuildContext context,index){
-                return Card(
-                  child: ListTile(
-                    title: Text("hi"),
-                    subtitle: Text("Task name "),
-                    trailing: Icon(Icons.notifications_none_rounded),
-                  ),
-                );
-              })
-              
+                        );
+                        var myTime = DateFormat("HH:mm").format(date);
+                        print(myTime);
+
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          child:SlideAnimation(
+                            child: FadeInAnimation(
+                              child: Row(
+                                children: [
+                                  InkWell(
+                                    onTap: (){
+                                      modalBottomSheetMenu(context,taskList);
+                                    },
+                                    child: TaskTitleWidget(taskList:taskList,),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ) ,
+                        );
+                      }
+                      if(taskList.date==DateFormat.yMd().format(_selectedDate)){
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          child:SlideAnimation(
+                            child: FadeInAnimation(
+                              child: Row(
+                                children: [
+                                  InkWell(
+                                    onTap: (){
+                                      modalBottomSheetMenu(context,taskList);
+                                    },
+                                    child: TaskTitleWidget(taskList:taskList,),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ) ,
+                        );
+                      }
+                      else{
+                        // return AnimationConfiguration.staggeredList(
+                        //   position: index,
+                        //   child:SlideAnimation(
+                        //     child: FadeInAnimation(
+                        //       child: Row(
+                        //         children: [
+                        //           InkWell(
+                        //             onTap: (){
+                        //               modalBottomSheetMenu(context,taskList);
+                        //             },
+                        //             child: TaskTitleWidget(taskList:taskList,),
+                        //           )
+                        //         ],
+                        //       ),
+                        //     ),
+                        //   ) ,
+                        // );
+                        return Container();
+                      }
+
+                    });
+              }))
             ],
           ),
         ),
       ),
     );
   }
+
+
 
   // void _settingModalBottomSheet() {
   //   final double imageRadius = 50;
@@ -179,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
   //   );
   // }
 
-  void modalBottomSheetMenu(BuildContext context) {
+  void modalBottomSheetMenu(BuildContext context, TaskModels taskList,) {
      Size size = MediaQuery.of(context).size;
      showModalBottomSheet(
          context: context,
@@ -198,104 +268,54 @@ class _HomeScreenState extends State<HomeScreen> {
                    child: Padding(
                      padding: EdgeInsets.all(20),
                      child: Column(
-                       crossAxisAlignment: CrossAxisAlignment.start,
+                       crossAxisAlignment: CrossAxisAlignment.center,
                        mainAxisSize: MainAxisSize.min,
                        children: [
-                         Center(
-                           child: Text(
-                             "Daily Routine Planner",
-                             style: GoogleFonts.poppins(
-                               color: const Color.fromARGB(255, 59, 59, 61),
-                               fontSize: 20,
-                               fontWeight: FontWeight.w900,
-                             ),
+                         Text(
+                           "Daily Routine Planner",
+                           style: GoogleFonts.poppins(
+                             color: const Color.fromARGB(255, 59, 59, 61),
+                             fontSize: 20,
+                             fontWeight: FontWeight.w900,
                            ),
-
                          ),
-                         TableCalendar(
-                           calendarFormat: CalendarFormat.week,
-                           firstDay: DateTime.utc(2010, 10, 16),
-                           lastDay: DateTime.utc(2030, 3, 14),
-                            focusedDay: Provider.of<ServiceProvider>(context, listen: false).selectedDay,
-                           // focusedDay: DateTime.now(),
-                           selectedDayPredicate: (day) {
-                             return isSameDay(Provider.of<ServiceProvider>(context, listen: false).selectedDay, day);
+                         SizedBox(height: 4,),
+                         InkWell(
+                           onTap: (){
+                             _taskController.delete(taskList);
+                             Navigator.of(context).pop();
+                             _taskController.getTask();
                            },
-
-                           onDaySelected: (selectedDay, focusedDay) {
-
-                             setState(() {
-
-                               Provider.of<ServiceProvider>(context, listen: false).setSelectedDay(selectedDay, focusedDay);
-                             });
-                           },
-                         ),
-                         Center(
-                             child: Container(
-                               alignment: Alignment.center,
-                               height: 40,
-                               width: 200,
-                               decoration: BoxDecoration(
-
-                                 borderRadius: BorderRadius.circular(20),
-                               ),
-                               child:TextButton.icon(onPressed: (){
-                                 _showTimePicker();
-                               },
-                                   icon: Icon(Icons.schedule,size: 30,),
-                                   label: Text(Provider.of<ServiceProvider>(context, listen: false).timeOfDay.format(context).toString(),style: GoogleFonts.poppins(
-                                     color: Colors.black,
-                                     fontSize: 20,
-                                     fontWeight: FontWeight.w900,
-                                   ),)),
-
-                             )
-                         ),
-                        Padding(
-                            padding:EdgeInsets.only(
-                              top: 10,
-                              left: 20,
-                              right: 20,
-                              bottom: 10
-                            ),
-                          child: TextFormField(
-                            decoration: InputDecoration(
-                              prefixIcon: Icon(Icons.app_registration_sharp),
-                              hintText: "Task Name",
-                              enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.black12,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(40)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.black12,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(40)),
-                              fillColor: Colors.white,
-                              filled: true,
-                            ),
-                          ),
-                        ),
-
-                         Center(
                            child: Container(
                              alignment: Alignment.center,
                              height: 40,
                              width: 200,
                              decoration: BoxDecoration(
-                               color:Colors.lightBlue,
                                borderRadius: BorderRadius.circular(20),
+                               color: Colors.lightGreenAccent
                              ),
-                             child: Text("Add Tast",style: GoogleFonts.poppins(
-                               color: Colors.white,
-                               fontSize: 16,
-                               fontWeight: FontWeight.w900,
-                             ),),
-                           )
+                             child: Text("Delete"),
+                           ),
                          ),
+                         SizedBox(height: 4,),
+                         InkWell(
+                           onTap: (){
+                              _taskController.markCompleted(taskList.id!);
+                              Navigator.of(context).pop();
+                              _taskController.getTask();
+                           },
+                           child: Container(
+                             alignment: Alignment.center,
+                             height: 40,
+                             width: 200,
+                             decoration: BoxDecoration(
+                                 borderRadius: BorderRadius.circular(20),
+                                 color: Colors.lightGreenAccent
+                             ),
+                             child: Text("Task Completed"),
+                           ),
+                         )
+
                        ],
                      ),
                    ),
